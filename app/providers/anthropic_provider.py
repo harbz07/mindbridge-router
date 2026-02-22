@@ -12,6 +12,11 @@ class AnthropicProvider(BaseLLMProvider):
     """Provider for Anthropic Claude models."""
     
     AVAILABLE_MODELS = [
+        # Claude 4 models (latest)
+        "claude-opus-4-6",
+        "claude-sonnet-4-6",
+        "claude-sonnet-4-5",
+        "claude-opus-4-5",
         # Claude 3.5 models
         "claude-3-5-sonnet-20241022",
         "claude-3-5-sonnet-20240620",
@@ -20,9 +25,6 @@ class AnthropicProvider(BaseLLMProvider):
         "claude-3-opus-20240229",
         "claude-3-sonnet-20240229",
         "claude-3-haiku-20240307",
-        # Claude 4 models (if available)
-        "claude-sonnet-4-20250514",
-        "claude-opus-4-20250514",
     ]
     
     def __init__(self, api_key: str, **kwargs):
