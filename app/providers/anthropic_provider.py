@@ -83,13 +83,22 @@ class AnthropicProvider(BaseLLMProvider):
                     if hasattr(block, 'text'):
                         content += block.text
             
+            # Map Anthropic stop_reason to OpenAI finish_reason
+            finish_reason_map = {
+                "end_turn": "stop",
+                "max_tokens": "length",
+                "stop_sequence": "stop",
+                "tool_use": "tool_calls",
+            }
+            finish_reason = finish_reason_map.get(response.stop_reason, "stop")
+            
             return ChatCompletionChoice(
                 index=0,
                 message=ChatMessage(
                     role="assistant",
                     content=content
                 ),
-                finish_reason=response.stop_reason or "stop"
+                finish_reason=finish_reason
             )
         
         except Exception as e:
