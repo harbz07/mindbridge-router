@@ -1,0 +1,64 @@
+name: Backend CD (Railway)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "requirements.txt"
+      - "Dockerfile"
+      - "railway.json"
+      - ".github/workflows/backend-cd-railway.yml"
+  workflow_dispatch:
+    inputs:
+      railway_project_id:
+        description: "Railway project ID"
+        required: false
+        default: "7f011784-7ff6-408e-9322-f31a3a7e596e"
+      railway_environment_id:
+        description: "Railway environment ID"
+        required: false
+        default: "dd73b5dc-4703-43ee-ad35-0389dac2d529"
+      railway_service_id:
+        description: "Railway service ID"
+        required: false
+        default: "e2cacd2b-15cf-41d4-9efd-cd43a1416b7f"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      RAILWAY_PROJECT_ID: ${{ github.event.inputs.railway_project_id || vars.RAILWAY_PROJECT_ID || '7f011784-7ff6-408e-9322-f31a3a7e596e' }}
+      RAILWAY_ENVIRONMENT_ID: ${{ github.event.inputs.railway_environment_id || vars.RAILWAY_ENVIRONMENT_ID || 'dd73b5dc-4703-43ee-ad35-0389dac2d529' }}
+      RAILWAY_SERVICE_ID: ${{ github.event.inputs.railway_service_id || vars.RAILWAY_SERVICE_ID || 'e2cacd2b-15cf-41d4-9efd-cd43a1416b7f' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up \
+            --ci \
+            --detach \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT_ID" \
+            --service "$RAILWAY_SERVICE_ID"
+
+      - name: Post-deploy health check
+        if: ${{ vars.BACKEND_HEALTHCHECK_URL != '' }}
+        run: curl --fail --show-error --silent "${{ vars.BACKEND_HEALTHCHECK_URL }}/health"

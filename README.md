@@ -71,6 +71,16 @@ This project is configured for easy deployment to Railway.
 4.  **Railway will automatically build and deploy** the application using the provided `Dockerfile` and `railway.json`.
 5.  Once deployed, Railway will provide you with a public URL for your router service. This is your `MINDBRIDGE_ROUTER_URL`.
 
+## CI/CD Workflows
+
+GitHub Actions workflows are provided for:
+
+- Backend CI + Railway CD
+- Frontend CI/CD (Cloudflare Pages, path-scoped)
+- Cloudflare Worker CI/CD + D1 migrations (path-scoped)
+
+See `docs/ci-cd.md` for setup details (required secrets/variables and deployment policy).
+
 ## Integration with Cloudflare Worker
 
 To integrate the router with your existing MindBridge Cloudflare Worker:
