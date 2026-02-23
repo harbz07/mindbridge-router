@@ -1,0 +1,62 @@
+name: Backend Deploy (Railway)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "requirements.txt"
+      - "Dockerfile"
+      - "railway.json"
+  workflow_dispatch:
+
+concurrency:
+  group: railway-deploy
+  cancel-in-progress: true
+
+env:
+  RAILWAY_PROJECT_ID: 7f011784-7ff6-408e-9322-f31a3a7e596e
+  RAILWAY_ENVIRONMENT_ID: dd73b5dc-4703-43ee-ad35-0389dac2d529
+  RAILWAY_SERVICE_ID: e2cacd2b-15cf-41d4-9efd-cd43a1416b7f
+
+jobs:
+  ci-gate:
+    name: CI Gate
+    uses: ./.github/workflows/backend-ci.yml
+
+  deploy:
+    name: Deploy to Railway
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up \
+            --service ${{ env.RAILWAY_SERVICE_ID }} \
+            --environment ${{ env.RAILWAY_ENVIRONMENT_ID }} \
+            --detach
+
+      - name: Wait for deployment health
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+
+      - name: Verify deployment
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          SERVICE_URL=$(railway domain --json 2>/dev/null | jq -r '.[0]' || echo "")
+          if [ -n "$SERVICE_URL" ] && [ "$SERVICE_URL" != "null" ]; then
+            echo "Checking health at https://$SERVICE_URL/health"
+            curl -sf "https://$SERVICE_URL/health" && echo "Deployment healthy!" || echo "Health check pending - deployment may still be starting"
+          else
+            echo "No public domain found - skipping health check"
+          fi

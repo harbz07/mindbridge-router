@@ -2,25 +2,21 @@
 MindBridge Router - FastAPI application for OpenAI-compatible LLM routing.
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+import os
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import os
-from typing import List
 
+from app.auth import verify_api_key
 from app.models import (
     ChatCompletionRequest,
     ChatCompletionResponse,
-    ChatCompletionChoice,
-    Usage,
-    ModelList,
     Model,
-    ErrorResponse,
-    ErrorDetail,
+    ModelList,
+    Usage,
 )
-from app.auth import verify_api_key
 from app.providers import provider_factory
-from app.memory import conversation_memory
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -50,7 +46,7 @@ async def http_exception_handler(request, exc):
                 "type": "invalid_request_error",
                 "message": exc.detail,
             }
-        }
+        },
     )
 
 
@@ -80,13 +76,13 @@ async def health_check():
 async def list_models(api_key: str = Depends(verify_api_key)):
     """
     List all available models across all configured providers.
-    
+
     Returns models in OpenAI-compatible format with the naming convention:
     mindbridge:provider/model
     """
     models = []
     all_provider_models = provider_factory.get_all_models()
-    
+
     for provider_name, model_list in all_provider_models.items():
         for model_name in model_list:
             models.append(
@@ -95,7 +91,7 @@ async def list_models(api_key: str = Depends(verify_api_key)):
                     owned_by=provider_name,
                 )
             )
-    
+
     return ModelList(data=models)
 
 
@@ -106,32 +102,32 @@ async def create_chat_completion(
 ):
     """
     Create a chat completion using the specified model.
-    
+
     This endpoint is OpenAI-compatible and accepts the same request format
     as the OpenAI Chat Completions API.
     """
-    
+
     # Parse the model string to extract provider and model name
     try:
         provider_name, model_name = request.parse_model()
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
     # Get the provider
     provider = provider_factory.get_provider(provider_name)
     if not provider:
         raise HTTPException(
             status_code=400,
-            detail=f"Provider '{provider_name}' is not configured. Available providers: {provider_factory.get_available_providers()}"
+            detail=f"Provider '{provider_name}' is not configured. Available providers: {provider_factory.get_available_providers()}",
         )
-    
+
     # Validate the model
     if not provider.is_valid_model(model_name):
         raise HTTPException(
             status_code=400,
-            detail=f"Model '{model_name}' is not available for provider '{provider_name}'. Available models: {provider.get_available_models()}"
+            detail=f"Model '{model_name}' is not available for provider '{provider_name}'. Available models: {provider.get_available_models()}",
         )
-    
+
     # Get completion from provider
     try:
         choice = await provider.get_completion(
@@ -146,56 +142,51 @@ async def create_chat_completion(
             presence_penalty=request.presence_penalty,
             reasoning_effort=request.reasoning_effort,
         )
-        
+
         # Store conversation in memory (optional, for future context)
         # We could generate a conversation_id from request metadata
         # For now, we'll skip this to keep it simple
-        
+
         # Estimate token usage (rough approximation)
         # In production, you'd want to use tiktoken or similar
         prompt_text = " ".join([msg.content or "" for msg in request.messages])
         completion_text = choice.message.content or ""
-        
+
         prompt_tokens = len(prompt_text.split()) * 1.3  # Rough estimate
         completion_tokens = len(completion_text.split()) * 1.3
-        
+
         usage = Usage(
             prompt_tokens=int(prompt_tokens),
             completion_tokens=int(completion_tokens),
             total_tokens=int(prompt_tokens + completion_tokens),
         )
-        
+
         # Build response
         response = ChatCompletionResponse(
             model=request.model,
             choices=[choice],
             usage=usage,
         )
-        
+
         return response
-    
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating completion: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error generating completion: {str(e)}") from e
 
 
 @app.get("/providers")
 async def list_providers(api_key: str = Depends(verify_api_key)):
     """
     List all configured providers and their available models.
-    
+
     This is a debug/admin endpoint.
     """
-    return {
-        "providers": provider_factory.get_all_models()
-    }
+    return {"providers": provider_factory.get_all_models()}
 
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "app.main:app",
