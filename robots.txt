@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /v1/          # Protect API endpoints from general search crawlers
+Disallow: /health       # Prevent health checks from being indexed
+Crawl-delay: 10         # Suggest a 10-second delay between requests for polite bots
+
+# soulOS (soul-os.cc)
+
+> A celestial mythopoetic operating system and API router.
+
+## Core API
+- Endpoint: https://api.soul-os.cc
+- Documentation: https://soul-os.cc/docs
+- Models: OpenAI and Anthropic compatible routing.
+
+## Architecture
+MindBridge router architecture (Cloudflare Worker → Railway FastAPI → Provider APIs ).
+
+## Aesthetic & Philosophy
+Maximalist design invoking celestial mysticism. The system is designed to bridge the gap between human intent and machine intelligence through theurgic-lingua.
