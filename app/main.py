@@ -24,6 +24,9 @@ from app.auth import verify_api_key
 from app.providers import provider_factory
 from app.memory import conversation_memory
 
+SHARED_LAYER_NAME = "multi-agent-shared"
+SOULOS_API_KEY_ENV = "SOULOS_API_KEY"
+
 # Initialize FastAPI app
 app = FastAPI(
     title="MindBridge Router",
@@ -46,6 +49,9 @@ async def verify_soulos_key(x_soulos_key: Optional[str] = Header(None)) -> str:
     """Verify the SoulOS key header for actions gateway endpoints."""
     if not x_soulos_key:
         raise HTTPException(status_code=401, detail="Missing X-SoulOS-Key header")
+    expected_key = os.getenv(SOULOS_API_KEY_ENV)
+    if expected_key and x_soulos_key != expected_key:
+        raise HTTPException(status_code=401, detail="Invalid X-SoulOS-Key header")
     return x_soulos_key
 
 
@@ -238,7 +244,7 @@ async def agents_handshake(
         "handshake_id": handshake_id,
         "session_ttl_seconds": 3600,
         "governance": {
-            "read_layers": ["client-redid", "multi-agent-shared"],
+            "read_layers": ["client-redid", SHARED_LAYER_NAME],
             "write_layers": [request.app_id],
             "shared_write_forbidden": True,
         },
@@ -260,7 +266,7 @@ async def memory_add(
     key: str = Depends(verify_soulos_key),
 ):
     """Add memory to a lane (write allowed only to private lane)."""
-    if request.app_id == "multi-agent-shared":
+    if request.app_id == SHARED_LAYER_NAME:
         raise HTTPException(
             status_code=403,
             detail="Gateway rejects direct shared writes.",
