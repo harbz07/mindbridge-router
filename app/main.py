@@ -2,11 +2,13 @@
 MindBridge Router - FastAPI application for OpenAI-compatible LLM routing.
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
-from typing import List
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+import uuid
 
 from app.models import (
     ChatCompletionRequest,
@@ -21,6 +23,9 @@ from app.models import (
 from app.auth import verify_api_key
 from app.providers import provider_factory
 from app.memory import conversation_memory
+
+SHARED_LAYER_NAME = "multi-agent-shared"
+SOULOS_API_KEY_ENV = "SOULOS_API_KEY"
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -38,6 +43,41 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+async def verify_soulos_key(x_soulos_key: Optional[str] = Header(None)) -> str:
+    """Verify the SoulOS key header for actions gateway endpoints."""
+    if not x_soulos_key:
+        raise HTTPException(status_code=401, detail="Missing X-SoulOS-Key header")
+    expected_key = os.getenv(SOULOS_API_KEY_ENV)
+    if expected_key and x_soulos_key != expected_key:
+        raise HTTPException(status_code=401, detail="Invalid X-SoulOS-Key header")
+    return x_soulos_key
+
+
+class HandshakeRequest(BaseModel):
+    user_id: str
+    agent_id: str
+    app_id: str
+    persona: str
+    capabilities: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+
+class MemorySearchRequest(BaseModel):
+    user_id: str
+    app_id: str
+    query: str
+    limit: int = 5
+
+
+class MemoryAddRequest(BaseModel):
+    user_id: str
+    app_id: str
+    agent_id: str
+    persona: str
+    content: str
+    promote: bool = False
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 @app.exception_handler(HTTPException)
@@ -191,6 +231,49 @@ async def list_providers(api_key: str = Depends(verify_api_key)):
     return {
         "providers": provider_factory.get_all_models()
     }
+
+
+@app.post("/agents/handshake", status_code=201)
+async def agents_handshake(
+    request: HandshakeRequest,
+    key: str = Depends(verify_soulos_key),
+):
+    """Negotiate session profile + confirm governance rules."""
+    handshake_id = f"hsk_{uuid.uuid4().hex[:12]}"
+    return {
+        "handshake_id": handshake_id,
+        "session_ttl_seconds": 3600,
+        "governance": {
+            "read_layers": ["client-redid", SHARED_LAYER_NAME],
+            "write_layers": [request.app_id],
+            "shared_write_forbidden": True,
+        },
+    }
+
+
+@app.post("/memory/search")
+async def memory_search(
+    request: MemorySearchRequest,
+    key: str = Depends(verify_soulos_key),
+):
+    """Search memories in a lane (private or shared)."""
+    return {"results": []}
+
+
+@app.post("/memory/add", status_code=201)
+async def memory_add(
+    request: MemoryAddRequest,
+    key: str = Depends(verify_soulos_key),
+):
+    """Add memory to a lane (write allowed only to private lane)."""
+    if request.app_id == SHARED_LAYER_NAME:
+        raise HTTPException(
+            status_code=403,
+            detail="Gateway rejects direct shared writes.",
+        )
+
+    memory_id = f"mem_{uuid.uuid4().hex[:12]}"
+    return {"memory_id": memory_id}
 
 
 if __name__ == "__main__":
