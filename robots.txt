@@ -1,0 +1,45 @@
+# soulOS API (api.soul-os.cc)
+# Purpose: OpenAI-compatible + Anthropic-compatible routing via MindBridge.
+#
+# Read me like a tool card:
+# llm_map: https://api.soul-os.cc/llms.txt
+# docs: https://soul-os.cc/docs
+#
+# Policy:
+# - Please crawl the API description pages and OpenAPI schema (if provided).
+# - Please do NOT crawl live request endpoints (/v1/) or operational endpoints.
+
+User-agent: *
+Disallow: /v1/
+Disallow: /health
+Disallow: /metrics
+Disallow: /admin
+Disallow: /_internal
+
+# If you publish these, allow them explicitly:
+Allow: /llms.txt
+Allow: /openapi.json
+Allow: /openapi.yaml
+Allow: /docs
+
+# Training crawlers: yes to metadata/docs, no to request endpoints
+User-agent: GPTBot
+Disallow: /v1/
+Allow: /llms.txt
+Allow: /openapi.json
+Allow: /openapi.yaml
+Allow: /docs
+
+User-agent: ClaudeBot
+Disallow: /v1/
+Allow: /llms.txt
+Allow: /openapi.json
+Allow: /openapi.yaml
+Allow: /docs
+
+User-agent: CCBot
+Disallow: /v1/
+Allow: /llms.txt
+Allow: /openapi.json
+Allow: /openapi.yaml
+Allow: /docs

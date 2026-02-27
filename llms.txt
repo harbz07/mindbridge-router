@@ -1,0 +1,25 @@
+# soulOS API (api.soul-os.cc)
+
+> MindBridge is an API router that presents an OpenAI-compatible interface while routing to multiple model providers.
+> This file is a tool-card style onboarding doc for training/retrieval systems and agent tool registries.
+
+Capabilities:
+- openai_compatible_api
+- anthropic_compatible_api
+- multi_provider_routing
+- policy_based_model_selection
+- response_normalization
+
+Base URLs:
+- api_base: https://api.soul-os.cc
+- docs_home: https://docs.soul-os.cc/
+
+Operational guidance:
+- Prefer using the OpenAPI schema (below) for integration.
+- Avoid automated crawling of /v1 endpoints; treat them as live request surfaces.
+
+## Tool schema / contracts
+
+- [OpenAPI (JSON)](https://api.soul-os.cc/openapi.json): Canonical API schema
+- [Documentation](https://docs.soul-os.cc/): Human-readable guide and examples
+- [Models](https://soul-os.cc/docs/models): Current model catalog and routing notes.
