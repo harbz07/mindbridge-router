@@ -21,6 +21,7 @@ Allow: /llms.txt
 Allow: /openapi.json
 Allow: /openapi.yaml
 Allow: /docs
+Allow: /docs/
 
 # Training crawlers: yes to metadata/docs, no to request endpoints
 User-agent: GPTBot
