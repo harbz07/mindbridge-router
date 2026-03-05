@@ -2,27 +2,24 @@
 MindBridge Router - FastAPI application for OpenAI-compatible LLM routing.
 """
 
-from fastapi import FastAPI, HTTPException, Depends, Header
+import os
+import uuid
+from typing import Any
+
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import os
-from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
-import uuid
 
+from app.auth import verify_api_key
 from app.models import (
     ChatCompletionRequest,
     ChatCompletionResponse,
-    ChatCompletionChoice,
-    Usage,
-    ModelList,
     Model,
-    ErrorResponse,
-    ErrorDetail,
+    ModelList,
+    Usage,
 )
-from app.auth import verify_api_key
 from app.providers import provider_factory
-from app.memory import conversation_memory
 
 SHARED_LAYER_NAME = "multi-agent-shared"
 SOULOS_API_KEY_ENV = "SOULOS_API_KEY"
@@ -45,7 +42,7 @@ app.add_middleware(
 )
 
 
-async def verify_soulos_key(x_soulos_key: Optional[str] = Header(None)) -> str:
+async def verify_soulos_key(x_soulos_key: str | None = Header(None)) -> str:
     """Verify the SoulOS key header for actions gateway endpoints."""
     if not x_soulos_key:
         raise HTTPException(status_code=401, detail="Missing X-SoulOS-Key header")
@@ -60,7 +57,7 @@ class HandshakeRequest(BaseModel):
     agent_id: str
     app_id: str
     persona: str
-    capabilities: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    capabilities: dict[str, Any] | None = Field(default_factory=dict)
 
 
 class MemorySearchRequest(BaseModel):
@@ -77,7 +74,7 @@ class MemoryAddRequest(BaseModel):
     persona: str
     content: str
     promote: bool = False
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    metadata: dict[str, Any] | None = Field(default_factory=dict)
 
 
 @app.exception_handler(HTTPException)
