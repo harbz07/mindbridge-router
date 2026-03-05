@@ -41,3 +41,8 @@ htmlcov/
 
 # Logs
 *.log
+
+# Node (for Cloudflare Workers / Frontend)
+node_modules/
+dist/
+.wrangler/
