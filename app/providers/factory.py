@@ -35,7 +35,7 @@ class ProviderFactory:
             self._providers["anthropic"] = AnthropicProvider(api_key=anthropic_key)
         
         # Google
-        google_key = os.getenv("GOOGLE_API_KEY")
+        google_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         if google_key:
             self._providers["google"] = GoogleProvider(api_key=google_key)
         

@@ -12,16 +12,17 @@ class GoogleProvider(BaseLLMProvider):
     """Provider for Google Gemini models."""
     
     AVAILABLE_MODELS = [
-        # Gemini 2.0 models
+        # Gemini 3.x models (preview)
+        "gemini-3-flash-preview",
+        "gemini-3.1-pro-preview",
+        "gemini-3.1-flash-lite-preview",
+        # Gemini 2.5 models (stable, recommended)
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-pro",
+        # Gemini 2.0 models (retiring June 2026)
         "gemini-2.0-flash",
-        "gemini-2.0-flash-exp",
-        # Gemini 1.5 models (stable)
-        "gemini-1.5-pro",
-        "gemini-1.5-pro-002",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-002",
-        # Gemini 1.0 models (legacy)
-        "gemini-1.0-pro",
+        "gemini-2.0-flash-lite",
     ]
     
     def __init__(self, api_key: str, **kwargs):
@@ -38,8 +39,6 @@ class GoogleProvider(BaseLLMProvider):
     ) -> ChatCompletionChoice:
         """Get completion from Google Gemini."""
         
-        # Convert messages to Gemini format
-        # Gemini uses a different conversation format
         system_instruction = None
         conversation_history = []
         
@@ -58,7 +57,6 @@ class GoogleProvider(BaseLLMProvider):
                 })
         
         try:
-            # Create model instance
             generation_config = {
                 "temperature": temperature,
             }
@@ -78,10 +76,8 @@ class GoogleProvider(BaseLLMProvider):
                 system_instruction=system_instruction
             )
             
-            # Start chat with history (excluding the last user message)
             chat = model_instance.start_chat(history=conversation_history[:-1] if len(conversation_history) > 1 else [])
             
-            # Send the last user message
             last_message = conversation_history[-1]["parts"][0] if conversation_history else ""
             response = await chat.send_message_async(last_message)
             

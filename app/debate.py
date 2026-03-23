@@ -195,7 +195,7 @@ DEFAULT_CAST = {
     },
     "santideva": {
         "provider": "google",
-        "model": "gemini-2.0-flash",
+        "model": "gemini-2.5-flash",
         "role": "ethical_witness",
         "synecdoche": "The Bodhisattva Vow / Karuna (Compassion)",
         "must_preserve": "the coherence of the Bodhisattva vow; compassion as directed, not diffuse",
