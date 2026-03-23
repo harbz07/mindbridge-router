@@ -8,6 +8,7 @@ from app.providers.base import BaseLLMProvider
 from app.providers.openai_provider import OpenAIProvider
 from app.providers.anthropic_provider import AnthropicProvider
 from app.providers.google_provider import GoogleProvider
+from app.providers.deepseek_provider import DeepSeekProvider
 
 
 class ProviderFactory:
@@ -37,6 +38,11 @@ class ProviderFactory:
         google_key = os.getenv("GOOGLE_API_KEY")
         if google_key:
             self._providers["google"] = GoogleProvider(api_key=google_key)
+        
+        # DeepSeek
+        deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+        if deepseek_key:
+            self._providers["deepseek"] = DeepSeekProvider(api_key=deepseek_key)
         
         # TODO: Add more providers as needed
         # - DeepSeek

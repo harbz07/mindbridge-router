@@ -20,6 +20,7 @@ from app.models import (
     Usage,
 )
 from app.providers import provider_factory
+from app.debate import DebateRequest, DebateTranscript, run_pve_debate, DEFAULT_CAST, TEST_QUESTIONS
 
 SHARED_LAYER_NAME = "multi-agent-shared"
 SOULOS_API_KEY_ENV = "SOULOS_API_KEY"
@@ -227,6 +228,52 @@ async def list_providers(api_key: str = Depends(verify_api_key)):
     """
     return {
         "providers": provider_factory.get_all_models()
+    }
+
+
+@app.post("/v1/debate", response_model=DebateTranscript)
+async def create_debate(
+    request: DebateRequest,
+    api_key: str = Depends(verify_api_key),
+):
+    """
+    Run a PvE (Player vs Environment) philosophical debate.
+
+    Routes a structured multi-turn debate through multiple LLM providers,
+    each cast member hydrated with philosophical personas and mem0 context.
+    Returns a structured transcript with reasoning chains and post-debate analysis.
+    """
+    try:
+        transcript = await run_pve_debate(request)
+        return transcript
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Debate execution failed: {str(e)}"
+        )
+
+
+@app.get("/v1/debate/cast")
+async def get_debate_cast(api_key: str = Depends(verify_api_key)):
+    """
+    Returns the default cast, test questions, and shared anchor
+    for the PvE debate engine. Reference endpoint.
+    """
+    return {
+        "cast": {
+            name: {
+                "role": cfg["role"],
+                "provider": cfg["provider"],
+                "model": cfg["model"],
+                "synecdoche": cfg["synecdoche"],
+                "must_preserve": cfg.get("must_preserve", ""),
+                "break_point": cfg.get("break_point", ""),
+                "one_liner": cfg.get("one_liner", ""),
+            }
+            for name, cfg in DEFAULT_CAST.items()
+        },
+        "test_questions": TEST_QUESTIONS,
+        "modes": ["prosecution", "roundtable", "stress_test", "structured_test"],
     }
 
 
